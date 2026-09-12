@@ -29,3 +29,19 @@ fi
 exit 0
 EOF
 chmod +x ./package/base-files/files/etc/uci-defaults/99-openssh-root
+
+# opkg：首启后统一切换为北京大学 ImmortalWrt 镜像。
+# 同时兼容上游默认 downloads.immortalwrt.org 与其首次启动后使用的 vsean 镜像。
+cat > ./package/base-files/files/etc/uci-defaults/99-opkg-pku-mirror <<'EOF'
+#!/bin/sh
+
+DISTFEEDS="/etc/opkg/distfeeds.conf"
+[ -f "$DISTFEEDS" ] || exit 0
+
+sed -e 's,https://downloads.immortalwrt.org,https://mirrors.pku.edu.cn/immortalwrt,g' \
+    -e 's,https://mirrors.vsean.net/openwrt,https://mirrors.pku.edu.cn/immortalwrt,g' \
+    -i.bak "$DISTFEEDS"
+
+exit 0
+EOF
+chmod +x ./package/base-files/files/etc/uci-defaults/99-opkg-pku-mirror
