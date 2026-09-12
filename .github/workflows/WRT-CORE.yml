@@ -162,6 +162,17 @@ jobs:
           WRT_KVER=$(find "$TARGET_DIR" -maxdepth 1 -type f -name '*.manifest' -exec grep -oP '^kernel - \K[\d\.]+' {} \; | head -n 1)
           echo "WRT_KVER=${WRT_KVER:-unknown}" >> "$GITHUB_ENV"
 
+          WRT_LIST=$(find "$TARGET_DIR" -maxdepth 1 -type f -name '*.manifest' \
+            -exec awk '$1 ~ /^luci-(app|theme)-/ { print "- `" $1 "` — " $3 }' {} \; | sort -u)
+          if [ -z "$WRT_LIST" ]; then
+            WRT_LIST='- 无'
+          fi
+          {
+            echo 'WRT_LIST<<EOF'
+            echo "$WRT_LIST"
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
           find "$TARGET_DIR" -maxdepth 1 -type f \
             ! -name '*.buildinfo' \
             ! -name 'profiles.json' \
@@ -189,3 +200,6 @@ jobs:
             配置：${{ env.WRT_CONFIG }}
             平台：${{ env.WRT_TARGET }}/${{ env.WRT_SUBTARGET }}
             内核：${{ env.WRT_KVER }}
+
+            LuCI 插件 / 主题：
+            ${{ env.WRT_LIST }}
