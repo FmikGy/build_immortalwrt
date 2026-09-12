@@ -6,8 +6,8 @@
 
 当前支持在 Actions 中选择：
 
-- `padavanonly/immortalwrt-mt798x`，分支 `openwrt-21.02`
-- `hanwckf/immortalwrt-mt798x`，分支 `openwrt-21.02`
+- [`padavanonly/immortalwrt-mt798x`](https://github.com/padavanonly/immortalwrt-mt798x)，分支 `openwrt-21.02`
+- [`hanwckf/immortalwrt-mt798x`](https://github.com/hanwckf/immortalwrt-mt798x)，分支 `openwrt-21.02`
 - `both`：同时编译以上两个上游
 
 编译时会先读取当前所选上游自己的 `defconfig/mt7986-ax6000.config`，继承该上游对应的 MT7986 闭源 Wi-Fi、WED、WARP、HNAT 等配置，再叠加本仓库的精简配置。因此两个上游可以共用同一套本地配置，同时保留各自驱动与固件差异。
@@ -29,7 +29,7 @@
 
 - `luci-app-openclash`
 
-OpenClash 源码来自 `vernesong/OpenClash` 的 `dev` 分支。
+OpenClash 源码来自 [`vernesong/OpenClash`](https://github.com/vernesong/OpenClash) 的 `dev` 分支。
 
 ## 系统与管理组件
 
@@ -81,4 +81,4 @@ OpenSSH 的 root 密码登录要求设备上的 root 已设置非空密码。
 
 ## U-Boot
 
-参考：`hanwckf/bl-mt798x`
+参考：[`hanwckf/bl-mt798x`](https://github.com/hanwckf/bl-mt798x)
