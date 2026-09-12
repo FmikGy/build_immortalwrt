@@ -17,7 +17,7 @@ UPDATE_PACKAGE() {
     git clone --depth=1 --single-branch --branch "$PKG_BRANCH" "https://github.com/${PKG_REPO}.git"
 
     if [[ "$PKG_SPECIAL" == "pkg" ]]; then
-        find "./$REPO_NAME" -maxdepth 4 -type d -iname "*${PKG_NAME}*" -prune -exec cp -rf {} ./ \;
+        find "./$REPO_NAME" -mindepth 1 -maxdepth 4 -type d -iname "*${PKG_NAME}*" -prune -exec cp -rf {} ./ \;
         rm -rf "$REPO_NAME"
     fi
 }
