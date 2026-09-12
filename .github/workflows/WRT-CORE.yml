@@ -1,0 +1,191 @@
+name: WRT-CORE
+
+on:
+  workflow_call:
+    inputs:
+      WRT_CONFIG:
+        required: true
+        type: string
+      WRT_SOURCE:
+        required: true
+        type: string
+      WRT_REPO:
+        required: true
+        type: string
+      WRT_BRANCH:
+        required: true
+        type: string
+      WRT_SSH:
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  WRT_CONFIG: ${{ inputs.WRT_CONFIG }}
+  WRT_SOURCE: ${{ inputs.WRT_SOURCE }}
+  WRT_REPO: ${{ inputs.WRT_REPO }}
+  WRT_BRANCH: ${{ inputs.WRT_BRANCH }}
+
+jobs:
+  core:
+    name: Redmi-AX6000-${{ inputs.WRT_SOURCE }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Projects
+        uses: actions/checkout@v4
+
+      - name: Initialization Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo -E apt-get -qq update
+          sudo -E apt-get -qq install dos2unix
+          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          sudo timedatectl set-timezone Asia/Shanghai
+
+          sudo mkdir -p /mnt/build_wrt
+          sudo chown "$USER:$USER" /mnt/build_wrt
+          ln -s /mnt/build_wrt "$GITHUB_WORKSPACE/wrt"
+
+      - name: Initialization Values
+        run: |
+          WRT_TARGET=$(grep -m 1 -oP '^CONFIG_TARGET_\K[\w]+(?=\=y)' "Config/$WRT_CONFIG.txt")
+          WRT_SUBTARGET=$(grep -m 1 -oP "^CONFIG_TARGET_${WRT_TARGET}_\K[\w]+(?=\=y)" "Config/$WRT_CONFIG.txt")
+          WRT_DATE=$(date +"%y.%m.%d-%H.%M.%S")
+          WRT_CACHE_PREFIX="wrt-${WRT_SOURCE}-${WRT_BRANCH}-${WRT_TARGET}-${WRT_SUBTARGET}"
+
+          {
+            echo "WRT_TARGET=$WRT_TARGET"
+            echo "WRT_SUBTARGET=$WRT_SUBTARGET"
+            echo "WRT_DATE=$WRT_DATE"
+            echo "WRT_CACHE_PREFIX=$WRT_CACHE_PREFIX"
+          } >> "$GITHUB_ENV"
+
+      - name: Clone Code
+        run: |
+          git clone --depth=1 --single-branch --branch "$WRT_BRANCH" "$WRT_REPO" ./wrt/
+          cd ./wrt/
+          WRT_HASH=$(git rev-parse HEAD)
+          echo "WRT_HASH=$WRT_HASH" >> "$GITHUB_ENV"
+          echo "WRT_CACHE_KEY=$WRT_CACHE_PREFIX-$WRT_HASH" >> "$GITHUB_ENV"
+
+      - name: Check Scripts
+        run: |
+          find ./Scripts ./Config -type f \( -name '*.sh' -o -name '*.txt' \) -exec dos2unix {} \;
+          chmod +x ./Scripts/*.sh
+
+      - name: Restore Build Cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ env.WRT_CACHE_KEY }}
+          restore-keys: |
+            ${{ env.WRT_CACHE_PREFIX }}-
+          path: |
+            ./wrt/.ccache
+            ./wrt/staging_dir/host*
+            ./wrt/staging_dir/tool*
+
+      - name: Prepare Restored Cache
+        if: ${{ steps.cache-restore.outputs.cache-matched-key != '' }}
+        run: |
+          find ./wrt/staging_dir -type d -name stamp -not -path '*target*' 2>/dev/null | while read -r DIR; do
+            find "$DIR" -type f -exec touch {} +
+          done
+          mkdir -p ./wrt/tmp
+          echo 1 > ./wrt/tmp/.build
+
+      - name: Update Feeds
+        run: |
+          cd ./wrt/
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Custom Packages
+        run: |
+          cd ./wrt/package/
+          "$GITHUB_WORKSPACE/Scripts/Packages.sh"
+          "$GITHUB_WORKSPACE/Scripts/Handles.sh"
+
+      - name: Custom Settings
+        run: |
+          cd ./wrt/
+          cp "$GITHUB_WORKSPACE/Config/$WRT_CONFIG.txt" .config
+          "$GITHUB_WORKSPACE/Scripts/Settings.sh"
+          make defconfig
+
+      - name: SSH Connection
+        if: ${{ inputs.WRT_SSH }}
+        uses: P3TERX/ssh2actions@v1.0.0
+        env:
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+
+      - name: Download Packages
+        run: |
+          cd ./wrt/
+          make download -j"$(nproc)"
+
+      - name: Compile Firmware
+        run: |
+          cd ./wrt/
+          make -j"$(nproc)" || make -j1 V=s
+
+      - name: Save Build Cache
+        if: ${{ success() && steps.cache-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ env.WRT_CACHE_KEY }}
+          path: |
+            ./wrt/.ccache
+            ./wrt/staging_dir/host*
+            ./wrt/staging_dir/tool*
+
+      - name: Package Firmware
+        run: |
+          cd ./wrt/
+          mkdir -p ./upload
+
+          cp .config "./upload/Config-${WRT_CONFIG}-${WRT_SOURCE}-${WRT_DATE}.txt"
+
+          TARGET_DIR=$(find ./bin/targets -mindepth 2 -maxdepth 2 -type d | head -n 1)
+          if [ -z "$TARGET_DIR" ]; then
+            echo 'Firmware target directory not found.'
+            exit 1
+          fi
+
+          WRT_KVER=$(find "$TARGET_DIR" -maxdepth 1 -type f -name '*.manifest' -exec grep -oP '^kernel - \K[\d\.]+' {} \; | head -n 1)
+          echo "WRT_KVER=${WRT_KVER:-unknown}" >> "$GITHUB_ENV"
+
+          find "$TARGET_DIR" -maxdepth 1 -type f \
+            ! -name '*.buildinfo' \
+            ! -name 'profiles.json' \
+            ! -name 'sha256sums' \
+            -exec cp -f {} ./upload/ \;
+
+      - name: Upload Firmware Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Redmi-AX6000-${{ env.WRT_SOURCE }}-${{ env.WRT_DATE }}
+          path: ./wrt/upload/*
+          if-no-files-found: error
+
+      - name: Release Firmware
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: Redmi-AX6000-${{ env.WRT_SOURCE }}-${{ env.WRT_DATE }}
+          name: Redmi AX6000 - ${{ env.WRT_SOURCE }} - ${{ env.WRT_DATE }}
+          files: ./wrt/upload/*
+          body: |
+            源码：${{ env.WRT_REPO }}
+            分支：${{ env.WRT_BRANCH }}
+            提交：${{ env.WRT_HASH }}
+
+            配置：${{ env.WRT_CONFIG }}
+            平台：${{ env.WRT_TARGET }}/${{ env.WRT_SUBTARGET }}
+            内核：${{ env.WRT_KVER }}

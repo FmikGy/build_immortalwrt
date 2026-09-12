@@ -1,0 +1,46 @@
+name: MTK-ALL
+
+on:
+  workflow_dispatch:
+    inputs:
+      WRT_SOURCE:
+        description: '选择 AX6000 上游源码'
+        required: true
+        default: 'padavanonly'
+        type: choice
+        options:
+          - padavanonly
+          - hanwckf
+          - both
+      WRT_SSH:
+        description: '编译前开启 SSH 调试'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  padavanonly:
+    if: ${{ inputs.WRT_SOURCE == 'padavanonly' || inputs.WRT_SOURCE == 'both' }}
+    uses: ./.github/workflows/WRT-CORE.yml
+    with:
+      WRT_CONFIG: Redmi-AX6000
+      WRT_SOURCE: padavanonly
+      WRT_REPO: https://github.com/padavanonly/immortalwrt-mt798x
+      WRT_BRANCH: openwrt-21.02
+      WRT_SSH: ${{ inputs.WRT_SSH }}
+    secrets: inherit
+
+  hanwckf:
+    if: ${{ inputs.WRT_SOURCE == 'hanwckf' || inputs.WRT_SOURCE == 'both' }}
+    uses: ./.github/workflows/WRT-CORE.yml
+    with:
+      WRT_CONFIG: Redmi-AX6000
+      WRT_SOURCE: hanwckf
+      WRT_REPO: https://github.com/hanwckf/immortalwrt-mt798x
+      WRT_BRANCH: openwrt-21.02
+      WRT_SSH: ${{ inputs.WRT_SSH }}
+    secrets: inherit

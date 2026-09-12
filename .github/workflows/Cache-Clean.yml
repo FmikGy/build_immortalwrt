@@ -1,0 +1,20 @@
+name: Cache-Clean
+
+on:
+  schedule:
+    - cron: '0 20 * * 0'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Build Cache
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh cache delete --all --repo "$GH_REPO"
