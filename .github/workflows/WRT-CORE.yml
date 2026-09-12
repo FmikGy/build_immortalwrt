@@ -115,7 +115,29 @@ jobs:
       - name: Custom Settings
         run: |
           cd ./wrt/
-          cp "$GITHUB_WORKSPACE/Config/$WRT_CONFIG.txt" .config
+
+          UPSTREAM_CONFIG="./defconfig/mt7986-ax6000.config"
+          if [ ! -f "$UPSTREAM_CONFIG" ]; then
+            echo "Upstream AX6000 defconfig not found: $UPSTREAM_CONFIG"
+            exit 1
+          fi
+
+          # 继承当前所选上游自己的 MT7986 闭源 Wi-Fi / WED / WARP 配置。
+          cp "$UPSTREAM_CONFIG" .config
+
+          # 上游 defconfig 默认包含多个 MT7986 设备；移除设备选择后由本仓库短配置接管。
+          sed -i -E \
+            -e '/^CONFIG_TARGET_MULTI_PROFILE=/d' \
+            -e '/^# CONFIG_TARGET_MULTI_PROFILE is not set/d' \
+            -e '/^CONFIG_TARGET_DEVICE_mediatek_mt7986_DEVICE_/d' \
+            -e '/^CONFIG_TARGET_DEVICE_PACKAGES_mediatek_mt7986_DEVICE_/d' \
+            -e '/^CONFIG_TARGET_mediatek_mt7986_DEVICE_/d' \
+            .config
+
+          cat "$GITHUB_WORKSPACE/Config/$WRT_CONFIG.txt" >> .config
+          [ -f "$GITHUB_WORKSPACE/Config/GENERAL.txt" ] && cat "$GITHUB_WORKSPACE/Config/GENERAL.txt" >> .config
+          [ -f "$GITHUB_WORKSPACE/Config/PRIVATE.txt" ] && cat "$GITHUB_WORKSPACE/Config/PRIVATE.txt" >> .config
+
           "$GITHUB_WORKSPACE/Scripts/Settings.sh"
           make defconfig
 
