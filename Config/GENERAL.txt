@@ -1,0 +1,11 @@
+# =========================
+# 通用构建配置
+# =========================
+
+# 保留现有固件同时生成 initramfs 与 squashfs
+CONFIG_TARGET_ROOTFS_INITRAMFS=y
+CONFIG_TARGET_ROOTFS_SQUASHFS=y
+
+# 保留构建配置信息
+CONFIG_INCLUDE_CONFIG=y
+CONFIG_JSON_OVERVIEW_IMAGE_INFO=y
