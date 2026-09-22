@@ -9,12 +9,11 @@
 - [`padavanonly/immortalwrt-mt798x`](https://github.com/padavanonly/immortalwrt-mt798x)，分支 `openwrt-21.02`
 - [`hanwckf/immortalwrt-mt798x`](https://github.com/hanwckf/immortalwrt-mt798x)，分支 `openwrt-21.02`
 - [`FmikGy/immortalwrt-mt798x-trafficstatus`](https://github.com/FmikGy/immortalwrt-mt798x-trafficstatus)，分支 `openwrt-21.02`
-- `both`：同时编译 `padavanonly` 与 `hanwckf` 两个原有上游
 - `all`：同时编译以上三个上游
 
 编译时会先读取当前所选上游自己的 `defconfig/mt7986-ax6000.config`，继承该上游对应的 MT7986 闭源 Wi-Fi、WED、WARP、HNAT 等配置，再叠加本仓库的精简配置。因此三个上游可以共用同一套本地配置，同时保留各自驱动、固件与功能差异。
 
-选择 `both` 时，`padavanonly` 与 `hanwckf` 分别在独立 GitHub Actions Job 中构建；选择 `all` 时三个上游分别在独立 Job 中构建。每个 Job 都使用自己的源码、`mt7986-ax6000.config`、缓存、Artifact 与 Release，不会互相覆盖。
+选择 `all` 时三个上游分别在独立 GitHub Actions Job 中构建。每个 Job 都使用自己的源码、`mt7986-ax6000.config`、缓存、Artifact 与 Release，不会互相覆盖。
 
 ## 固件布局
 
