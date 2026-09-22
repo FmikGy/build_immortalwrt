@@ -11,7 +11,9 @@ on:
         options:
           - padavanonly
           - hanwckf
+          - trafficstatus
           - both
+          - all
       WRT_SSH:
         description: '编译前开启 SSH 调试'
         required: false
@@ -24,7 +26,7 @@ permissions:
 
 jobs:
   padavanonly:
-    if: ${{ inputs.WRT_SOURCE == 'padavanonly' || inputs.WRT_SOURCE == 'both' }}
+    if: ${{ inputs.WRT_SOURCE == 'padavanonly' || inputs.WRT_SOURCE == 'both' || inputs.WRT_SOURCE == 'all' }}
     uses: ./.github/workflows/WRT-CORE.yml
     with:
       WRT_CONFIG: Redmi-AX6000
@@ -35,12 +37,23 @@ jobs:
     secrets: inherit
 
   hanwckf:
-    if: ${{ inputs.WRT_SOURCE == 'hanwckf' || inputs.WRT_SOURCE == 'both' }}
+    if: ${{ inputs.WRT_SOURCE == 'hanwckf' || inputs.WRT_SOURCE == 'both' || inputs.WRT_SOURCE == 'all' }}
     uses: ./.github/workflows/WRT-CORE.yml
     with:
       WRT_CONFIG: Redmi-AX6000
       WRT_SOURCE: hanwckf
       WRT_REPO: https://github.com/hanwckf/immortalwrt-mt798x
+      WRT_BRANCH: openwrt-21.02
+      WRT_SSH: ${{ inputs.WRT_SSH }}
+    secrets: inherit
+
+  trafficstatus:
+    if: ${{ inputs.WRT_SOURCE == 'trafficstatus' || inputs.WRT_SOURCE == 'all' }}
+    uses: ./.github/workflows/WRT-CORE.yml
+    with:
+      WRT_CONFIG: Redmi-AX6000
+      WRT_SOURCE: trafficstatus
+      WRT_REPO: https://github.com/FmikGy/immortalwrt-mt798x-trafficstatus.git
       WRT_BRANCH: openwrt-21.02
       WRT_SSH: ${{ inputs.WRT_SSH }}
     secrets: inherit
