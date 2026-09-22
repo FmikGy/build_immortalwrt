@@ -12,7 +12,6 @@ on:
           - padavanonly
           - hanwckf
           - trafficstatus
-          - both
           - all
       WRT_SSH:
         description: '编译前开启 SSH 调试'
@@ -26,7 +25,7 @@ permissions:
 
 jobs:
   padavanonly:
-    if: ${{ inputs.WRT_SOURCE == 'padavanonly' || inputs.WRT_SOURCE == 'both' || inputs.WRT_SOURCE == 'all' }}
+    if: ${{ inputs.WRT_SOURCE == 'padavanonly' || inputs.WRT_SOURCE == 'all' }}
     uses: ./.github/workflows/WRT-CORE.yml
     with:
       WRT_CONFIG: Redmi-AX6000
@@ -37,7 +36,7 @@ jobs:
     secrets: inherit
 
   hanwckf:
-    if: ${{ inputs.WRT_SOURCE == 'hanwckf' || inputs.WRT_SOURCE == 'both' || inputs.WRT_SOURCE == 'all' }}
+    if: ${{ inputs.WRT_SOURCE == 'hanwckf' || inputs.WRT_SOURCE == 'all' }}
     uses: ./.github/workflows/WRT-CORE.yml
     with:
       WRT_CONFIG: Redmi-AX6000
